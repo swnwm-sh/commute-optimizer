@@ -17,7 +17,7 @@ class LocalBeamSearchSolver(LocalSearchSolver):
         self.max_iterations: int = self.params.get("max_iterations", 150)
 
     def solve(self) -> Tuple[State, float]:
-                self.history = []
+        self.history = []
         width = max(1, int(self.beam_width))
         initial = self.problem.generate_initial_state()
         pool = {initial}
