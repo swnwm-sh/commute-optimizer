@@ -20,7 +20,7 @@ class GeneticAlgorithmSolver(LocalSearchSolver):
         self.elitism: int = self.params.get("elitism", 2)
 
     def solve(self) -> Tuple[State, float]:
-                self.history = []
+        self.history = []
         size = max(2, int(self.population_size))
         elite_count = max(0, min(int(self.elitism), size))
         seed = self.problem.generate_initial_state()
