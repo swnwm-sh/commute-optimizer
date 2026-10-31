@@ -17,6 +17,35 @@ class LocalBeamSearchSolver(LocalSearchSolver):
         self.max_iterations: int = self.params.get("max_iterations", 150)
 
     def solve(self) -> Tuple[State, float]:
+                self.history = []
+        width = max(1, int(self.beam_width))
+        initial = self.problem.generate_initial_state()
+        pool = {initial}
+        frontier = [initial]
+        for _ in range(width * 5):
+            options = get_neighbors(random.choice(frontier), self.problem)
+            if options:
+                candidate = random.choice(options)
+                pool.add(candidate)
+                frontier.append(candidate)
+        beam = sorted(pool, key=self.problem.evaluate)[:width]
+        best = min(beam, key=self.problem.evaluate)
+        best_cost = self.problem.evaluate(best)
+        self.history.append(best_cost)
+        for _ in range(self.max_iterations):
+            candidates = set(beam)
+            for state in beam:
+                candidates.update(get_neighbors(state, self.problem))
+            ranked = sorted(candidates, key=self.problem.evaluate)
+            next_beam = ranked[:width]
+            current_best = self.problem.evaluate(next_beam[0])
+            if current_best < best_cost:
+                best, best_cost = next_beam[0], current_best
+            self.history.append(best_cost)
+            if set(next_beam) == set(beam):
+                break
+            beam = next_beam
+        return best, best_cost
         """
         Executes Local Beam Search.
 
@@ -33,5 +62,5 @@ class LocalBeamSearchSolver(LocalSearchSolver):
         Prohibited:
         - Treating this as K independent, non-communicating searches.
         """
-        # TODO: Implement Local Beam Search
-        raise NotImplementedError("Implement solve() in algorithms/beam_search.py")
+      
+        
