@@ -17,7 +17,7 @@ class HillClimbingSolver(LocalSearchSolver):
         self.max_restarts: int = self.params.get("max_restarts", 5)
 
     def solve(self) -> Tuple[State, float]:
-                self.history = []
+        self.history = []
         best = self.problem.generate_initial_state()
         best_cost = self.problem.evaluate(best)
         for restart in range(self.max_restarts + 1):
