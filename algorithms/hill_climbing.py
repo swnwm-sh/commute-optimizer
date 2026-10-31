@@ -17,6 +17,48 @@ class HillClimbingSolver(LocalSearchSolver):
         self.max_restarts: int = self.params.get("max_restarts", 5)
 
     def solve(self) -> Tuple[State, float]:
+                self.history = []
+        best = self.problem.generate_initial_state()
+        best_cost = self.problem.evaluate(best)
+        for restart in range(self.max_restarts + 1):
+            current = best if restart == 0 else self.problem.generate_initial_state()
+            if restart:
+                # Random walks diversify restarts beyond the default initial state.
+                for _ in range(random.randint(2, 14)):
+                    options = get_neighbors(current, self.problem)
+                    if not options:
+                        break
+                    current = random.choice(options)
+            current_cost = self.problem.evaluate(current)
+            sideways = 0
+            visited_plateau = {current}
+            while True:
+                self.history.append(best_cost)
+                if current_cost < best_cost:
+                    best, best_cost = current, current_cost
+                    self.history[-1] = best_cost
+                neighbors = get_neighbors(current, self.problem)
+                if not neighbors:
+                    break
+                scored = [(self.problem.evaluate(s), s) for s in neighbors]
+                min_cost = min(cost for cost, _ in scored)
+                if min_cost < current_cost - 1e-9:
+                    choices = [s for cost, s in scored if abs(cost-min_cost)<1e-9]
+                    current = random.choice(choices)
+                    current_cost = min_cost
+                    sideways = 0
+                    visited_plateau = {current}
+                elif abs(min_cost-current_cost)<1e-9 and sideways < self.max_sideways:
+                    choices = [s for cost, s in scored if abs(cost-current_cost)<1e-9 and s not in visited_plateau]
+                    if not choices:
+                        break
+                    current = random.choice(choices)
+                    visited_plateau.add(current)
+                    sideways += 1
+                else:
+                    break
+        self.history.append(best_cost)
+        return best, best_cost
         """
         Executes Hill Climbing optimization.
 
@@ -29,5 +71,4 @@ class HillClimbingSolver(LocalSearchSolver):
         Prohibited:
         - Looping indefinitely on flat plateaus.
         """
-        # TODO: Implement Hill Climbing with sideways moves and restarts
-        raise NotImplementedError("Implement solve() in algorithms/hill_climbing.py")
+        
