@@ -9,6 +9,33 @@ from core.problem import CommuteProblem
 
 
 def get_neighbors(state: State, problem: CommuteProblem) -> List[State]:
+    seen = set()
+    out = []
+    slots = _valid_times(problem)
+    if not problem.is_valid_state(state):
+        return out
+
+    def add(path, time):
+        candidate = State(tuple(path), float(time))
+        if candidate != state and candidate not in seen and problem.is_valid_state(candidate):
+            seen.add(candidate)
+            out.append(candidate)
+
+    idx = min(range(len(slots)), key=lambda k: abs(slots[k]-state.departure_time))
+    for new_index in (idx-1, idx+1):
+        if 0 <= new_index < len(slots):
+            add(state.path, slots[new_index])
+
+    # Replace any downstream suffix using an alternative outgoing edge.
+    for cut in range(len(state.path)-1):
+        prefix = state.path[:cut+1]
+        old_successor = state.path[cut+1]
+        for nxt in problem.network.get_neighbors(prefix[-1]):
+            if nxt == old_successor or nxt in prefix:
+                continue
+            for suffix in _alternate_suffixes(problem, nxt, set(prefix), limit=25):
+                add(prefix + suffix, state.departure_time)
+    return out
     """
     Generates a set of valid neighboring configurations for the current state.
 
@@ -39,10 +66,32 @@ def get_neighbors(state: State, problem: CommuteProblem) -> List[State]:
         List[State]: A list of valid neighboring State objects.
     """
     # TODO: Implement neighborhood generation
-    raise NotImplementedError("Implement get_neighbors in algorithms/operators.py")
+
 
 
 def crossover(parent1: State, parent2: State, problem: CommuteProblem) -> State:
+    slots = _valid_times(problem)
+    mean_time = (parent1.departure_time + parent2.departure_time) / 2
+    selected_time = min(slots, key=lambda t: abs(t - mean_time))
+    common = list(set(parent1.path[1:-1]) & set(parent2.path[1:-1]))
+    random.shuffle(common)
+    for pivot in common:
+        prefix = parent1.path[:parent1.path.index(pivot)]
+        suffix = parent2.path[parent2.path.index(pivot):]
+        candidate = State(prefix + suffix, selected_time)
+        if problem.is_valid_state(candidate):
+            return candidate
+        prefix = parent2.path[:parent2.path.index(pivot)]
+        suffix = parent1.path[parent1.path.index(pivot):]
+        candidate = State(prefix + suffix, selected_time)
+        if problem.is_valid_state(candidate):
+            return candidate
+    valid_parents = [s for s in (parent1,parent2) if problem.is_valid_state(s)]
+    if not valid_parents:
+        return problem.generate_initial_state()
+    baseline = min(valid_parents, key=problem.evaluate)
+    neighbors = get_neighbors(baseline, problem)
+    return random.choice(neighbors) if neighbors else baseline
     """
     Recombines structural features from two parent configurations into an offspring.
 
@@ -67,4 +116,4 @@ def crossover(parent1: State, parent2: State, problem: CommuteProblem) -> State:
         State: A newly generated child State.
     """
     # TODO: Implement genetic crossover
-    raise NotImplementedError("Implement crossover in algorithms/operators.py")
+  
