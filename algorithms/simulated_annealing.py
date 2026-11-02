@@ -17,31 +17,29 @@ class SimulatedAnnealingSolver(LocalSearchSolver):
         self.cooling_rate: float = self.params.get("cooling_rate", 0.995)
         self.min_temp: float = self.params.get("min_temp", 1e-3)
         self.max_iterations: int = self.params.get("max_iterations", 2000)
-
-    def solve(self) -> Tuple[State, float]:
-        if self.initial_temp <= 0 or not 0 < self.cooling_rate < 1:
-            raise ValueError("initial_temp must be positive; cooling_rate must be in (0,1)")
-        self.history = []
+    def solve(self):
         current = self.problem.generate_initial_state()
-        current_cost = self.problem.evaluate(current)
-        best, best_cost = current, current_cost
-        temperature = self.initial_temp
+        cost = self.problem.evaluate(current)
+        best, best_cost = current, cost
+        temp = self.initial_temp
+        self.history = [best_cost]
         for _ in range(self.max_iterations):
-            if temperature < self.min_temp:
+            if temp <= self.min_temp:
                 break
             neighbors = get_neighbors(current, self.problem)
             if not neighbors:
                 break
             candidate = random.choice(neighbors)
-            candidate_cost = self.problem.evaluate(candidate)
-            delta = candidate_cost - current_cost
-            if delta <= 0 or random.random() < math.exp(-delta/temperature):
-                current, current_cost = candidate, candidate_cost
-            if current_cost < best_cost:
-                best, best_cost = current, current_cost
+            next_cost = self.problem.evaluate(candidate)
+            delta = next_cost - cost
+            if delta <= 0 or random.random() < math.exp(-delta/temp):
+                current, cost = candidate, next_cost
+            if cost < best_cost:
+                best, best_cost = current, cost
             self.history.append(best_cost)
-            temperature *= self.cooling_rate
+            temp *= self.cooling_rate
         return best, best_cost
+
         """
         Executes Simulated Annealing optimization.
 
